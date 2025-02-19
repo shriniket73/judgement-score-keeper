@@ -2,16 +2,15 @@
 import { Metadata } from 'next';
 import GamePageClient from './GamePageClient';
 
-interface PageProps {
-  params: {
-    id: string;
-  };
+type Props = {
+  params: { id: string }
+  searchParams: { [key: string]: string | string[] | undefined }
 }
 
 export const metadata: Metadata = {
   title: 'Game - Judgment Score Keeper',
 };
 
-export default function GamePage({ params }: PageProps) {
+export default async function GamePage({ params }: Props) {
   return <GamePageClient params={params} />;
 }
