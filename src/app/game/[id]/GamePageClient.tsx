@@ -14,12 +14,12 @@ import { Button } from '@/components/ui/button';
 import { usePreventNavigation } from '@/lib/hooks/usePreventNavigation';
 
 interface GamePageClientProps {
-  params: {
-    id: string;
-  };
-}
+    params: {
+      id: string;
+    };
+  }
 
-export default function GamePageClient({ params }: GamePageClientProps) {
+  export default function GamePageClient({ params }: GamePageClientProps) {
   const router = useRouter();
   const game = useGameStore(state => state.game);
   const resetGame = useGameStore(state => state.resetGame);

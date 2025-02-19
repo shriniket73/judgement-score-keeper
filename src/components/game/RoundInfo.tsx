@@ -29,19 +29,16 @@ export function RoundInfo() {
 
   // Initialize tricks to 0 when the component mounts or game status changes
   useEffect(() => {
-    if (game?.status === 'playing') {
+    if (game?.status === 'playing' && game.rounds && game.currentRound) {
       const currentRound = game.rounds[game.currentRound - 1];
-      const initialTricks = Object.fromEntries(
-        currentRound.bids.map(bid => [bid.playerId, bid.actualTricks ?? 0])
-      );
-      setTricks(initialTricks);
-      
-      // // Also update the game state
-      // Object.entries(initialTricks).forEach(([playerId, tricks]) => {
-      //   updateTricks(playerId, tricks);
-      // });
+      if (currentRound) {
+        const initialTricks = Object.fromEntries(
+          currentRound.bids.map(bid => [bid.playerId, bid.actualTricks ?? 0])
+        );
+        setTricks(initialTricks);
+      }
     }
-  }, [game?.status]);
+  }, [game]);
 
   useEffect(() => {
     if (game) {
