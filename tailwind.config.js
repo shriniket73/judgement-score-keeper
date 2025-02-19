@@ -6,8 +6,11 @@ module.exports = {
     './pages/**/*.{ts,tsx}',
     './components/**/*.{ts,tsx}',
     './app/**/*.{ts,tsx}',
-    './src/**/*.{ts,tsx}',
+    './src/**/*.{js,ts,jsx,tsx,mdx}',
 	],
+  safelist: [
+    'font-instrument-serif',  // Ensure this class is not purged
+  ],
   theme: {
     container: {
       center: true,
