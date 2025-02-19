@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // app/game/setup/page.tsx
 'use client';
@@ -34,7 +35,7 @@ export default function GameSetup() {
               <label className="text-lg font-medium">Number of Players</label>
               <RadioGroup
                 defaultValue={playerCount.toString()}
-                onValueChange={(value) => setPlayerCount(Number(value))}
+                onValueChange={(value: any) => setPlayerCount(Number(value))}
                 className="flex gap-6"
               >
                 {[3, 4, 5, 6].map(num => (

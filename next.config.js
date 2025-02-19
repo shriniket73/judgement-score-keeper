@@ -1,22 +1,22 @@
 // next.config.js
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  async headers() {
-    return [
-      {
-        source: '/:path*',
-        headers: [
-          {
-            key: 'Access-Control-Allow-Origin',
-            value: '*',
-          },
-        ],
-      },
-    ];
-  },
+  reactStrictMode: true,
   images: {
-    domains: ['fonts.googleapis.com'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'fonts.googleapis.com',
+      },
+    ],
   },
-};
+  webpack: (config) => {
+    config.resolve.fallback = {
+      ...config.resolve.fallback,
+      canvas: false,
+    };
+    return config;
+  }
+}
 
-module.exports = nextConfig;
+module.exports = nextConfig

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 "use client";
 
 import type {
@@ -5,7 +6,7 @@ import type {
   CreateTypes as ConfettiInstance,
   Options as ConfettiOptions,
 } from "canvas-confetti";
-import confetti from "canvas-confetti";
+import dynamic from 'next/dynamic';
 import type { ReactNode } from "react";
 import React, {
   createContext,
@@ -18,6 +19,8 @@ import React, {
 } from "react";
 
 import { Button, ButtonProps } from "@/components/ui/button";
+
+import confetti from 'canvas-confetti';
 
 type Api = {
   fire: (options?: ConfettiOptions) => void;

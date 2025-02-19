@@ -1,14 +1,13 @@
-// app/layout.tsx
-import { Instrument_Serif } from 'next/font/google';
+// src/app/layout.tsx
+import { Inter } from 'next/font/google';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NavigationProvider } from '@/components/layout/NavigationProvider';
 import './globals.css';
 
-const instrumentSerif = Instrument_Serif({ 
+const inter = Inter({ 
   subsets: ['latin'],
-  weight: '400',
-  variable: '--font-instrument-serif',
+  display: 'swap',
 });
 
 export const metadata = {
@@ -26,10 +25,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <head>
-        <link rel="icon" href="/judgement-logo.ico" />
-      </head>
-      <body className={`${instrumentSerif.variable} font-serif bg-white text-black min-h-screen flex flex-col`}>
+      <body className={`${inter.className} bg-white text-black min-h-screen flex flex-col`}>
         <NavigationProvider>
           <div className="flex flex-col min-h-screen">
             <Header />
