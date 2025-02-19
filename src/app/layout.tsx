@@ -3,6 +3,8 @@ import { Instrument_Serif } from 'next/font/google';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { NavigationProvider } from '@/components/layout/NavigationProvider';
+import { Analytics } from '@vercel/analytics/react';
+import {PosthogScript} from "@/components/PosthogScript"
 import './globals.css';
 
 const instrumentSerif = Instrument_Serif({
@@ -27,6 +29,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className={instrumentSerif.variable}>
+      <head>
+        <PosthogScript/>
+      </head>
       <body className="bg-white text-black min-h-screen flex flex-col font-serif">
         <NavigationProvider>
           <div className="flex flex-col min-h-screen">
@@ -37,6 +42,7 @@ export default function RootLayout({
             <Footer />
           </div>
         </NavigationProvider>
+        <Analytics />
       </body>
     </html>
   );
