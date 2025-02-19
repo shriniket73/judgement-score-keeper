@@ -1,4 +1,3 @@
-// src/components/layout/NavigationProvider.tsx
 'use client';
 
 import { useGameStore } from '@/lib/store/gameStore';
