@@ -1,12 +1,14 @@
-// app/game/[id]/page.tsx
+/* eslint-disable @typescript-eslint/no-unused-vars */
+// src/app/game/[id]/page.tsx
 import GamePageClient from './GamePageClient';
 
-interface GamePageProps {
+type Props = {
   params: {
     id: string;
   };
-}
+  searchParams: { [key: string]: string | string[] | undefined };
+};
 
-export default function GamePage({ params }: GamePageProps) {
+export default async function GamePage({ params, searchParams }: Props) {
   return <GamePageClient params={params} />;
 }

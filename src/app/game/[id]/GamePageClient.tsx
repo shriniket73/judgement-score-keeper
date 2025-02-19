@@ -11,11 +11,11 @@ import { RoundHistory } from '@/components/game/RoundHistory';
 import { Button } from '@/components/ui/button';
 import { usePreventNavigation } from '@/lib/hooks/usePreventNavigation';
 
-interface GamePageClientProps {
-  params: {
-    id: string;
+type GamePageClientProps = {
+    params: {
+      id: string;
+    };
   };
-}
 
 export default function GamePageClient({ params }: GamePageClientProps) {
   const router = useRouter();
