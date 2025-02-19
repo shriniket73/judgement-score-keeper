@@ -18,11 +18,13 @@ export function PlayerSetup({ playerCount, onComplete }: PlayerSetupProps) {
 
   // Update players array when playerCount changes
   useEffect(() => {
-    setPlayers([...Array(playerCount)].map((_, i) => ({ 
-      name: players[i]?.name || '' 
-    })));
+    setPlayers(prevPlayers => 
+      [...Array(playerCount)].map((_, i) => ({ 
+        name: prevPlayers[i]?.name || '' 
+      }))
+    );
     setErrors(new Array(playerCount).fill(''));
-  }, [playerCount]);
+  }, [playerCount]); // Now using functional update for players
 
   const handleNameChange = (index: number, name: string) => {
     const newPlayers = [...players];
