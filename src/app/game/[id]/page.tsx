@@ -1,14 +1,17 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // src/app/game/[id]/page.tsx
+import { Metadata } from 'next';
 import GamePageClient from './GamePageClient';
 
-type Props = {
+interface PageProps {
   params: {
     id: string;
   };
-  searchParams: { [key: string]: string | string[] | undefined };
+}
+
+export const metadata: Metadata = {
+  title: 'Game - Judgment Score Keeper',
 };
 
-export default async function GamePage({ params, searchParams }: Props) {
+export default function GamePage({ params }: PageProps) {
   return <GamePageClient params={params} />;
 }

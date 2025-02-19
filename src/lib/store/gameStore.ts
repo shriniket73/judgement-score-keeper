@@ -98,28 +98,20 @@ export const useGameStore = create<GameStore>()(
           if (tricks < 0) return state;
           if (tricks > currentRound.cardsPerPlayer) return state;
       
-          // Calculate total tricks after this update
-          const totalOtherTricks = currentRound.bids.reduce((sum, bid) => {
-            if (bid.playerId === playerId) return sum;
-            return sum + (bid.actualTricks || 0);
-          }, 0);
+          // Create new bids array with updated tricks
+          const updatedBids = currentRound.bids.map(bid =>
+            bid.playerId === playerId ? { ...bid, actualTricks: tricks } : bid
+          );
       
-          // Ensure total tricks won't exceed cards per player
-          if (totalOtherTricks + tricks > currentRound.cardsPerPlayer) return state;
-      
+          // Create new rounds array with updated round
           const updatedRounds = [...state.game.rounds];
-          const roundIndex = state.game.currentRound - 1;
-          
-          updatedRounds[roundIndex] = {
+          updatedRounds[state.game.currentRound - 1] = {
             ...currentRound,
-            bids: currentRound.bids.map(bid =>
-              bid.playerId === playerId ? { ...bid, actualTricks: tricks } : bid
-            )
+            bids: updatedBids
           };
       
           success = true;
           return {
-            ...state,
             game: {
               ...state.game,
               rounds: updatedRounds
@@ -131,28 +123,86 @@ export const useGameStore = create<GameStore>()(
 
       completeRound: () => {
         let success = false;
-        set((state) => {
-          if (!state.game || state.game.status !== 'playing') return state;
+        set((state: GameStore) => {
+          console.log('Attempting to complete round in store:', {
+            gameStatus: state.game?.status,
+            currentRound: state.game?.currentRound,
+            maxRounds: state.game?.maxRounds,
+          });
+
+          if (!state.game || state.game.status !== 'playing') {
+            console.log('Cannot complete round:', {
+              reason: !state.game ? 'No game' : 'Game not in playing status',
+              status: state.game?.status
+            });
+            return state;
+          }
 
           const currentRound = state.game.rounds[state.game.currentRound - 1];
-          if (!currentRound.bids.every(bid => bid.actualTricks !== null)) return state;
+
+          // Debug log for bids
+          console.log('Current round bids:', currentRound.bids.map(bid => ({
+            playerId: bid.playerId,
+            actualTricks: bid.actualTricks,
+          })));
+          
+          // Verify all tricks have been recorded
+          const allTricksRecorded = currentRound.bids.every(bid => bid.actualTricks !== null);
+          console.log('Tricks validation:', {
+            allTricksRecorded,
+            bids: currentRound.bids
+          });
+
+          if (!allTricksRecorded) {
+            console.log('Not all tricks recorded');
+            return state;
+          }
+
+          console.log('Individual tricks:', currentRound.bids.map(bid => ({
+            playerId: bid.playerId,
+            tricks: bid.actualTricks
+          })));
+
+          // Verify total tricks equals cards per player
+          const totalExpectedTricks = currentRound.cardsPerPlayer;
+          const totalTricks = currentRound.bids.reduce((sum, bid) => sum + (bid.actualTricks || 0), 0);
+          console.log('Total tricks validation:', {
+            totalTricks,
+            totalExpectedTricks,
+            match: totalTricks === totalExpectedTricks
+          });
+
+          if (totalTricks !== totalExpectedTricks) {
+            console.log('Total tricks mismatch');
+            return state;
+          }
 
           const updatedRounds = [...state.game.rounds];
           updatedRounds[state.game.currentRound - 1].completed = true;
 
           const isGameComplete = state.game.currentRound === state.game.maxRounds;
+          console.log('Game completion check:', {
+            currentRound: state.game.currentRound,
+            maxRounds: state.game.maxRounds,
+            isGameComplete
+          });
 
           success = true;
+          
+          const newGameState: GameState = {
+            ...state.game,
+            rounds: updatedRounds,
+            status: isGameComplete ? 'completed' : 'round-end'
+          };
+
           return {
-            game: {
-              ...state.game,
-              rounds: updatedRounds,
-              status: isGameComplete ? 'completed' : 'round-end'
-            }
+            ...state,
+            game: newGameState
           };
         });
+        console.log('Complete round result:', success);
         return success;
-      },
+      },  
 
       startNextRound: () => {
         set((state) => {

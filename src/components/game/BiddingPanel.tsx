@@ -31,24 +31,21 @@ export function BiddingPanel() {
   });
 
   const validateBids = (): string | null => {
-    // Check if all players have bids
-    const missingBids = biddingPlayers.filter(player => playerBids[player.id] === undefined);
-    if (missingBids.length > 0) {
-      return `Missing bids for: ${missingBids.map(p => p.name).join(', ')}`;
-    }
-
+    // Players without explicit bids will be considered as bidding 0
+    // No need to check for missing bids as 0 is the default
+  
     // Check for negative bids
     const negativeBids = Object.entries(playerBids).filter(([_, bid]) => bid < 0);
     if (negativeBids.length > 0) {
       return 'Bids cannot be negative';
     }
-
+  
     // Check if any bid exceeds cards per player
     const invalidBids = Object.entries(playerBids).filter(([_, bid]) => bid > currentRound.cardsPerPlayer);
     if (invalidBids.length > 0) {
       return `Bids cannot exceed ${currentRound.cardsPerPlayer} tricks`;
     }
-
+  
     // Only validate last player's bid restriction
     const lastPlayer = biddingPlayers[biddingPlayers.length - 1];
     const totalBidsExceptLast = biddingPlayers
@@ -58,15 +55,15 @@ export function BiddingPanel() {
     if (totalBidsExceptLast + (playerBids[lastPlayer.id] || 0) === currentRound.cardsPerPlayer) {
       return `Last player's bid cannot make total bids (${currentRound.cardsPerPlayer}) equal to available tricks`;
     }
-
+  
     return null;
   };
 
   const handleBidInput = (playerId: string, inputValue: string) => {
-    const value = parseInt(inputValue) || 0;
+    const value = parseInt(inputValue);
     setPlayerBids(prev => ({
       ...prev,
-      [playerId]: value
+      [playerId]: isNaN(value) ? 0 : value
     }));
     setError(null);
   };
@@ -77,10 +74,11 @@ export function BiddingPanel() {
       setError(validationError);
       return;
     }
-
+  
     // Submit all bids in order
     biddingPlayers.forEach(player => {
-      addBid(player.id, playerBids[player.id]);
+      const bid = playerBids[player.id] ?? 0;  // Use nullish coalescing
+      addBid(player.id, bid);
     });
   };
 
@@ -109,14 +107,20 @@ export function BiddingPanel() {
               }
             </span>
             <div className="flex items-center gap-2">
-              <Input
-                type="number"
-                min={0}
-                max={currentRound.cardsPerPlayer}
-                value={playerBids[player.id] || 0}
-                onChange={(e) => handleBidInput(player.id, e.target.value)}
-                className="w-20"
-              />
+            <Input
+              type="number"
+              min={0}
+              max={currentRound.cardsPerPlayer}
+              value={playerBids[player.id] ?? 0}  // Use nullish coalescing
+              onChange={(e) => handleBidInput(player.id, e.target.value)}
+              onBlur={(e) => {
+                const value = e.target.value;
+                if (value === '' || isNaN(parseInt(value))) {
+                  handleBidInput(player.id, '0');
+                }
+              }}
+              className="w-20"
+            />
             </div>
           </div>
         ))}

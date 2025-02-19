@@ -1,11 +1,12 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // components/game/RoundInfo.tsx
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useGameStore } from '@/lib/store/gameStore';
 import { getRoundStatistics } from '@/lib/utils/calculations';
 import { BiddingPanel } from './BiddingPanel';
@@ -16,119 +17,133 @@ export function RoundInfo() {
   const game = useGameStore(state => state.game);
   const updateTricks = useGameStore(state => state.updateTricks);
   const completeRound = useGameStore(state => state.completeRound);
-  const [error, setError] = useState<string>('');
-  const [initialized, setInitialized] = useState(false);
+  const [showValidationAlert, setShowValidationAlert] = useState(false);
+  const [validationMessage, setValidationMessage] = useState('');
+  const [tricks, setTricks] = useState<Record<string, number>>({});
+  const suitSymbols = {
+    spades: '♠',
+    hearts: '♥',
+    clubs: '♣',
+    diamonds: '♦',
+  };
 
-  const initializeTricks = useCallback(() => {
-    if (!game || game.status !== 'playing' || initialized) return;
-  
-    const currentRound = game.rounds[game.currentRound - 1];
-    if (!currentRound) return;
-  
-    // Always initialize all tricks to 0
-    currentRound.bids.forEach(bid => {
-      updateTricks(bid.playerId, 0);
-    });
-    setInitialized(true);
-  }, [game, updateTricks, initialized]);
-
-  // Initialize tricks when entering playing state
+  // Initialize tricks to 0 when the component mounts or game status changes
   useEffect(() => {
-    if (game?.status === 'playing' && !initialized) {
-      initializeTricks();
+    if (game?.status === 'playing') {
+      const currentRound = game.rounds[game.currentRound - 1];
+      const initialTricks = Object.fromEntries(
+        currentRound.bids.map(bid => [bid.playerId, bid.actualTricks ?? 0])
+      );
+      setTricks(initialTricks);
+      
+      // // Also update the game state
+      // Object.entries(initialTricks).forEach(([playerId, tricks]) => {
+      //   updateTricks(playerId, tricks);
+      // });
     }
-  }, [game?.status, initialized, initializeTricks]);
+  }, [game?.status]);
+
+  useEffect(() => {
+    if (game) {
+      console.log('Current game state:', {
+        currentRound: game.currentRound,
+        maxRounds: game.maxRounds,
+        status: game.status,
+        rounds: game.rounds.length
+      });
+    }
+  }, [game]);
 
   if (!game) return null;
 
   const currentRound = game.rounds[game.currentRound - 1];
   const firstDealer = game.players.find(p => p.id === currentRound?.firstDealerId);
   const stats = currentRound ? getRoundStatistics(currentRound) : null;
-  const trump = getTrumpForRound(game.currentRound);
+  const trumpSuit = getTrumpForRound(game.currentRound);
 
   const sortedBids = [...currentRound.bids].sort((a, b) => 
     game.players.findIndex(p => p.id === a.playerId) - 
     game.players.findIndex(p => p.id === b.playerId)
   );
 
-  const checkAllTricksAreZero = (): boolean => {
-    return sortedBids.every(bid => !bid.actualTricks);
+  const handleTrickInput = (playerId: string, value: string) => {
+    const numValue = parseInt(value) || 0;
+    const newTricks = { ...tricks, [playerId]: numValue };
+    setTricks(newTricks);
+    updateTricks(playerId, numValue);
   };
-  
 
-  const validateTricksTotal = (): boolean => {
-    if (!currentRound) return false;
-    
+  const validateAndComplete = () => {
+    if (!game) return;
+
+    console.log('Attempting to complete round:', {
+      currentRound: game.currentRound,
+      maxRounds: game.maxRounds,
+      isLastRound: game.currentRound === game.maxRounds
+    });
+
     // Calculate total tricks
-    const totalTricks = sortedBids.reduce((sum, bid) => sum + (bid.actualTricks || 0), 0);
+    const totalTricks = Object.values(tricks).reduce((sum, t) => sum + (t || 0), 0);
     
-    // Check if all tricks are still 0 (invalid state)
-    if (checkAllTricksAreZero()) {
-      return false;
-    }
-    
-    // Check if total tricks equals cards per player
-    return totalTricks === currentRound.cardsPerPlayer;
-  };
+    console.log('Validating tricks:', {
+      totalTricks,
+      cardsPerPlayer: currentRound.cardsPerPlayer,
+      tricks
+    });
 
-  const handleUpdateTricks = (playerId: string, inputValue: string) => {
-    const value = parseInt(inputValue) || 0;
-    if (value < 0) {
-      setError('Tricks cannot be negative');
+    // All tricks are still 0
+    if (totalTricks === 0) {
+      setValidationMessage("Please enter tricks won by players");
+      setShowValidationAlert(true);
       return;
     }
 
-    // Calculate total tricks excluding this player
-    const totalOtherTricks = sortedBids.reduce((sum, bid) => {
-      if (bid.playerId === playerId) return sum;
-      return sum + (bid.actualTricks || 0);
-    }, 0);
-
-    if (totalOtherTricks + value > currentRound.cardsPerPlayer) {
-      setError(`Total tricks cannot exceed ${currentRound.cardsPerPlayer}`);
+    // Total tricks exceeds cards per player
+    if (totalTricks > currentRound.cardsPerPlayer) {
+      setValidationMessage(`Total tricks (${totalTricks}) cannot exceed available tricks (${currentRound.cardsPerPlayer})`);
+      setShowValidationAlert(true);
       return;
     }
 
-    setError('');
-    updateTricks(playerId, value);
-  };
-
-  const handleCompleteRound = () => {
-    if (validateTricksTotal()) {
-      completeRound();
+    // Total tricks doesn't match cards per player
+    if (totalTricks !== currentRound.cardsPerPlayer) {
+      setValidationMessage(`Total tricks (${totalTricks}) must equal available tricks (${currentRound.cardsPerPlayer})`);
+      setShowValidationAlert(true);
+      return;
     }
+
+    // All validations passed
+    console.log('All validations passed, completing round');
+    const result = completeRound();
+    console.log('Complete round result:', result);
   };
 
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex justify-between">
-          <span>Round {game.currentRound}</span>
-          <span className="text-muted-foreground">Trump: {trump}</span>
+          {/* <span>Round {game.currentRound}</span> */}
+          <div className="flex items-center space-x-2">
+            <p className="text-lg font-medium">Bidding and Trick Managment</p>
+            {/* <p
+              className="text-2xl"
+              style={{
+                color: trumpSuit === 'hearts' || trumpSuit === 'diamonds' ? 'red' : 'black',
+              }}
+            >
+              {suitSymbols[trumpSuit]}
+            </p> */}
+          </div>
+
         </CardTitle>
       </CardHeader>
       <CardContent>
         <div className="space-y-6">
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">First Dealer/Bidder</p>
-              <p className="text-lg">{firstDealer?.name || 'Not set'}</p>
-            </div>
-            <div>
-              <p className="text-sm font-medium text-muted-foreground">Cards per Player</p>
-              <p className="text-lg">{currentRound.cardsPerPlayer}</p>
-            </div>
-          </div>
-
-          {error && (
-            <Alert variant="destructive">
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          )}
+          {/* ... existing dealer and cards per player info ... */}
 
           {currentRound.bids.length > 0 && (
             <div>
-              <h4 className="text-sm font-medium mb-2">Current Round Status</h4>
+              {/* <h4 className="text-sm font-medium mb-2">Current Round Status</h4> */}
               <Table>
                 <TableHeader>
                   <TableRow>
@@ -152,22 +167,17 @@ export function RoundInfo() {
                         {game.status === 'playing' && (
                           <>
                             <TableCell className="text-right">
-                              {bid.actualTricks !== null ? bid.actualTricks : '0'}
+                              {tricks[bid.playerId] || 0}
                             </TableCell>
                             <TableCell>
-                            <Input
-                              type="number"
-                              value={bid.actualTricks ?? 0}  // Use nullish coalescing
-                              onChange={(e) => handleUpdateTricks(bid.playerId, e.target.value)}
-                              onBlur={(e) => {
-                                if (e.target.value === '' || isNaN(parseInt(e.target.value))) {
-                                  handleUpdateTricks(bid.playerId, '0');
-                                }
-                              }}
-                              min={0}
-                              max={currentRound.cardsPerPlayer}
-                              className="w-20 ml-auto"
-                            />
+                              <Input
+                                type="number"
+                                value={tricks[bid.playerId] || 0}
+                                onChange={(e) => handleTrickInput(bid.playerId, e.target.value)}
+                                min={0}
+                                max={currentRound.cardsPerPlayer}
+                                className="w-20 ml-auto"
+                              />
                             </TableCell>
                           </>
                         )}
@@ -182,7 +192,7 @@ export function RoundInfo() {
                     {game.status === 'playing' && (
                       <>
                         <TableCell className="text-right font-medium">
-                          {stats?.totalTricks || 0}
+                          {Object.values(tricks).reduce((sum, t) => sum + (t || 0), 0)}
                         </TableCell>
                         <TableCell />
                       </>
@@ -194,18 +204,10 @@ export function RoundInfo() {
               {game.status === 'playing' && (
                 <div className="mt-4">
                   <Button 
-                    onClick={handleCompleteRound}
-                    disabled={!!error || !validateTricksTotal()}
+                    onClick={validateAndComplete}
                     className="w-full"
                   >
-                    {!!error 
-                      ? error 
-                      : checkAllTricksAreZero()
-                        ? "Enter tricks won by players"
-                        : !validateTricksTotal()
-                          ? `Total tricks must equal ${currentRound.cardsPerPlayer}`
-                          : "Complete Round"
-                    }
+                    Complete Round
                   </Button>
                 </div>
               )}
@@ -219,6 +221,22 @@ export function RoundInfo() {
           )}
         </div>
       </CardContent>
+
+      <AlertDialog open={showValidationAlert} onOpenChange={setShowValidationAlert}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Invalid Tricks Distribution</AlertDialogTitle>
+            <AlertDialogDescription>
+              {validationMessage}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setShowValidationAlert(false)}>
+              OK
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Card>
   );
 }

@@ -19,8 +19,14 @@ export function RoundHistory() {
   if (!game) return null;
 
   const completedRounds = [...game.rounds]
-  .filter(round => round.completed)
-  .reverse(); // Reverse the array to show latest first
+    .filter(round => round.completed)
+    .reverse(); // Show latest rounds first
+    const suitSymbols = {
+        spades: '♠',
+        hearts: '♥',
+        clubs: '♣',
+        diamonds: '♦',
+      };
 
   return (
     <Card>
@@ -31,18 +37,30 @@ export function RoundHistory() {
         {completedRounds.length === 0 ? (
           <p className="text-muted-foreground">No completed rounds yet</p>
         ) : (
-          <div className="space-y-6 max-h-[600px] overflow-y-auto pr-2">
+          <div className="space-y-6 max-h-[600px] overflow-y-auto relative">
             {completedRounds.map((round) => (
-              <div key={round.roundNumber} className="space-y-2">
-                <div className="flex justify-between items-center sticky top-0 bg-background py-2">
+              <div key={round.roundNumber} className="space-y-2 relative">
+                <div className="flex justify-between items-center sticky top-0 py-2 z-10 before:absolute before:inset-0 before:bg-background before:-z-10 before:border-b">
                   <h3 className="font-semibold">Round {round.roundNumber}</h3>
                   <div className="flex items-center gap-4">
                     <span className="text-sm">
                       Cards per player: {round.cardsPerPlayer}
                     </span>
-                    <span className="text-sm">
+                    {/* <span className="text-sm">
                       Trump: {getTrumpForRound(round.roundNumber)}
-                    </span>
+                    </span> */}
+                    <div className="flex items-center space-x-2">
+                        <p className="text-sm font-medium">Trump:</p>
+                        <p
+                            className="text-2xl"
+                            style={{
+                            color: ['hearts', 'diamonds'].includes(getTrumpForRound(round.roundNumber)) ? 'red' : 'black',
+                            }}
+                        >
+                            {suitSymbols[getTrumpForRound(round.roundNumber)]}
+                        </p>
+                    </div>
+
                   </div>
                 </div>
                 
@@ -52,7 +70,7 @@ export function RoundHistory() {
                       <TableHead>Player</TableHead>
                       <TableHead className="text-right">Bid</TableHead>
                       <TableHead className="text-right">Tricks Won</TableHead>
-                      <TableHead className="text-right">Round Points</TableHead>
+                      <TableHead className="text-right">Points</TableHead>
                       <TableHead className="text-right">Running Total</TableHead>
                     </TableRow>
                   </TableHeader>
