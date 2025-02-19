@@ -1,3 +1,4 @@
+/* eslint-disable react-hooks/exhaustive-deps */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // components/game/RoundInfo.tsx
 'use client';
@@ -27,18 +28,26 @@ export function RoundInfo() {
     diamonds: '♦',
   };
 
-  // Initialize tricks to 0 when the component mounts or game status changes
+  // Reset and initialize tricks when round changes or status changes
   useEffect(() => {
-    if (game?.status === 'playing' && game.rounds && game.currentRound) {
-      const currentRound = game.rounds[game.currentRound - 1];
-      if (currentRound) {
-        const initialTricks = Object.fromEntries(
-          currentRound.bids.map(bid => [bid.playerId, bid.actualTricks ?? 0])
-        );
-        setTricks(initialTricks);
-      }
+    if (!game) return;
+    
+    const currentRound = game.rounds[game.currentRound - 1];
+    if (!currentRound) return;
+
+    // Always start with a fresh tricks state for the current round
+    const initialTricks = Object.fromEntries(
+      currentRound.bids.map(bid => [bid.playerId, bid.actualTricks ?? 0])
+    );
+    setTricks(initialTricks);
+
+    // Only initialize store tricks when entering playing state
+    if (game.status === 'playing') {
+      currentRound.bids.forEach(bid => {
+        updateTricks(bid.playerId, bid.actualTricks ?? 0);
+      });
     }
-  }, [game]);
+  }, [game?.currentRound, game?.status]);
 
   useEffect(() => {
     if (game) {
@@ -73,27 +82,13 @@ export function RoundInfo() {
   const validateAndComplete = () => {
     if (!game) return;
 
-    console.log('Attempting to complete round:', {
-      currentRound: game.currentRound,
-      maxRounds: game.maxRounds,
-      isLastRound: game.currentRound === game.maxRounds
-    });
-
-    // Calculate total tricks
-    const totalTricks = Object.values(tricks).reduce((sum, t) => sum + (t || 0), 0);
+    const currentRound = game.rounds[game.currentRound - 1];
     
-    console.log('Validating tricks:', {
-      totalTricks,
-      cardsPerPlayer: currentRound.cardsPerPlayer,
-      tricks
-    });
-
-    // All tricks are still 0
-    if (totalTricks === 0) {
-      setValidationMessage("Please enter tricks won by players");
-      setShowValidationAlert(true);
-      return;
-    }
+    // Calculate total tricks from the store state
+    const totalTricks = currentRound.bids.reduce(
+      (sum, bid) => sum + (bid.actualTricks || 0),
+      0
+    );
 
     // Total tricks exceeds cards per player
     if (totalTricks > currentRound.cardsPerPlayer) {
@@ -110,9 +105,17 @@ export function RoundInfo() {
     }
 
     // All validations passed
-    console.log('All validations passed, completing round');
     const result = completeRound();
-    console.log('Complete round result:', result);
+    
+    if (!result) {
+      console.log('Round completion failed. Current state:', {
+        totalTricks,
+        cardsPerPlayer: currentRound.cardsPerPlayer,
+        bids: currentRound.bids
+      });
+      setValidationMessage("Failed to complete round. Please ensure total tricks matches the number of cards.");
+      setShowValidationAlert(true);
+    }
   };
 
   return (
